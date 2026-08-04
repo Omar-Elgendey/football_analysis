@@ -1,156 +1,376 @@
 # Football Match Analysis
 
-An end-to-end computer vision pipeline that analyzes football match footage: detecting and tracking players, referees, and the ball, assigning players to teams, estimating speed and distance covered, and calculating ball possession — with additional data-analysis and visualization features layered on top.
+An end-to-end computer vision pipeline for analyzing football match footage. The system detects and tracks players, referees, and the ball, assigns players to teams, estimates player speed and distance covered, and calculates team ball possession.
 
-> **Note:** My background is in NLP, not Computer Vision. I cloned this project to learn how a CV pipeline is structured end-to-end, and extended it with the statistics and visualization features described below.
+The project was extended with additional player statistics, heatmap visualizations, and exploratory data analysis.
+
+> **Note:** This project started from an existing open-source football analysis implementation as a hands-on exploration of how an end-to-end computer vision pipeline is structured. The original pipeline was extended with player statistics, heatmaps, and exploratory data analysis.
+
+---
 
 ## Demo Output
 
-The pipeline outputs an annotated video showing:
-- Bounding ellipses around players and referees, color-coded by team
-- A triangle marker above the ball
-- Live ball possession percentage per team
-- Speed (km/h) and distance covered (m) displayed above each player
+The pipeline generates an annotated video containing:
 
-## Architecture / Pipeline
+- Player and referee tracking with persistent IDs
+- Team-colored annotations around players
+- Ball tracking
+- Live ball possession percentage for each team
+- Player speed in km/h
+- Player distance covered in meters
 
-The project follows a sequential pipeline, orchestrated in `main.py`:
+### Annotated Video
 
-```
+_Add a screenshot or GIF of the generated output here._
+
+---
+
+## Pipeline Architecture
+
+The system follows a sequential computer vision and analytics pipeline orchestrated by `main.py`.
+
+```text
 Input Video (.mp4)
       │
       ▼
-┌─────────────────────────┐
-│ 1. Detection & Tracking │  trackers/tracker.py
-│   YOLO + ByteTrack       │  → detects players, referees, ball
-│                          │  → assigns persistent IDs across frames
-└─────────────────────────┘
+┌────────────────────────────┐
+│ 1. Detection & Tracking    │
+│    YOLO + ByteTrack        │
+│                            │
+│ Detects players, referees, │
+│ and the ball and assigns   │
+│ persistent tracking IDs.  │
+└────────────────────────────┘
       │
       ▼
-┌─────────────────────────┐
-│ 2. Camera Movement       │  camera_movement_estimator/
-│    Compensation          │  → uses Optical Flow to detect camera
-│                          │    pan/movement and adjusts player
-│                          │    positions accordingly
-└─────────────────────────┘
+┌────────────────────────────┐
+│ 2. Camera Movement         │
+│    Compensation            │
+│                            │
+│ Optical Flow estimates     │
+│ camera movement and        │
+│ compensates player        │
+│ positions accordingly.    │
+└────────────────────────────┘
       │
       ▼
-┌─────────────────────────┐
-│ 3. View Transformation   │  view_transformer/
-│   Pixel → real-world (m) │  → perspective transform: converts
-│                          │    pixel coordinates into real pitch
-│                          │    coordinates (105m x 68m)
-└─────────────────────────┘
+┌────────────────────────────┐
+│ 3. View Transformation     │
+│    Pixel → Real World      │
+│                            │
+│ Perspective transformation │
+│ maps image coordinates to  │
+│ approximate pitch         │
+│ coordinates (105m × 68m). │
+└────────────────────────────┘
       │
       ▼
-┌─────────────────────────┐
-│ 4. Speed & Distance      │  speed_and_distance_estimator/
-│    Estimation             │  → computes each player's speed (km/h)
-│                          │    and cumulative distance covered (m)
-└─────────────────────────┘
+┌────────────────────────────┐
+│ 4. Speed & Distance        │
+│    Estimation              │
+│                            │
+│ Estimates player speed     │
+│ (km/h) and cumulative      │
+│ distance covered (m).      │
+└────────────────────────────┘
       │
       ▼
-┌─────────────────────────┐
-│ 5. Team Assignment       │  team_assigner/
-│   KMeans color clustering │  → clusters jersey colors to assign
-│                          │    each player to Team 1 or Team 2
-└─────────────────────────┘
+┌────────────────────────────┐
+│ 5. Team Assignment         │
+│    K-Means Clustering      │
+│                            │
+│ Uses jersey-color          │
+│ clustering to assign       │
+│ players to Team 1 or       │
+│ Team 2.                    │
+└────────────────────────────┘
       │
       ▼
-┌─────────────────────────┐
-│ 6. Ball Possession       │  player_ball_assigner/
-│   Nearest-player logic   │  → determines which player has the
-│                          │    ball based on proximity
-└─────────────────────────┘
+┌────────────────────────────┐
+│ 6. Ball Possession         │
+│    Player Assignment       │
+│                            │
+│ Assigns the ball to the   │
+│ closest tracked player    │
+│ based on spatial proximity.│
+└────────────────────────────┘
       │
       ▼
 ┌──────────────────────────────────────┐
-│ 7. Output Generation                 │
-│   ├─ Annotated video (tracker.py)    │  → output_videos/output_video.avi
-│   ├─ Player stats CSV (added)        │  → output_videos/player_stats.csv
-│   └─ Player heatmaps (added)         │  → output_videos/heatmap*.png
+│ 7. Analytics & Output                │
+│                                      │
+│ ├─ Annotated video                   │
+│ ├─ Player statistics CSV  [Added]    │
+│ ├─ Player heatmaps        [Added]    │
+│ └─ EDA notebook           [Added]    │
 └──────────────────────────────────────┘
 ```
 
-## Features I Added
+---
 
-The original cloned repository produced only the annotated output video. I extended it with the following features:
+## Features
 
-### 1. Player Statistics Export (`stats/stats_exporter.py`)
-Aggregates the per-frame tracking data into per-player summary statistics and exports them to a CSV file:
+### Original Pipeline
+
+The base pipeline provides:
+
+- Player, referee, and ball detection
+- Multi-object tracking with persistent IDs
+- Team assignment using jersey-color clustering
+- Camera movement estimation using Optical Flow
+- Perspective transformation
+- Player speed estimation
+- Player distance estimation
+- Team ball possession estimation
+- Annotated output video
+
+### Extensions Added
+
+The original implementation produced an annotated output video. I extended the pipeline with the following analytics features.
+
+### 1. Player Statistics Export
+
+**File:** `stats/stats_exporter.py`
+
+Aggregates frame-level tracking information into per-player summary statistics and exports them to CSV.
+
+Statistics include:
+
 - Total distance covered (m)
 - Average speed (km/h)
 - Number of frames in ball possession
 
-Output: `output_videos/player_stats.csv`
+**Output:**
 
-### 2. Player Heatmaps (`stats/heatmap_generator.py`)
-Uses each player's real-world (transformed) position across all frames to generate a 2D density heatmap showing where on the pitch they spent most of their time. Available for:
-- A single player (`generate_player_heatmap`)
-- All players combined (`generate_all_players_heatmap`)
+```text
+output_videos/player_stats.csv
+```
 
-Output: `output_videos/heatmap.png`, `output_videos/heatmap_all_players.png`
+---
 
-Built using `matplotlib.pyplot.hist2d`.
+### 2. Player Heatmaps
+
+**File:** `stats/heatmap_generator.py`
+
+Generates positional density heatmaps using each player's transformed real-world position on the pitch.
+
+Available visualizations:
+
+- Individual player heatmap
+- Combined heatmap for all players
+
+**Outputs:**
+
+```text
+output_videos/heatmap.png
+output_videos/heatmap_all_players.png
+```
+
+The heatmaps are generated using:
+
+```python
+matplotlib.pyplot.hist2d
+```
+
+### Example
+
+_Add a generated heatmap screenshot here._
+
+---
+
+### 3. Exploratory Data Analysis
+
+**File:** `analysis/football_eda.ipynb`
+
+A lightweight Jupyter notebook that loads the exported player statistics and explores the resulting metrics.
+
+The analysis focuses on:
+
+- Player distance covered
+- Average speed
+- Ball possession
+- Team-level comparisons
+- Identifying notable player statistics
+
+#### Example Findings
+
+Based on the current **30-second sample video**:
+
+- Team 2 averaged **27.81 m** per player compared with **19.47 m** for Team 1.
+- Team 2 averaged **5.66 km/h** per player compared with **3.46 km/h** for Team 1.
+- Player 91 recorded **146 possession frames**, substantially higher than the next highest player in the sample.
+
+> These statistics are calculated from the 30-second sample and should not be interpreted as full-match statistics.
+
+---
 
 ## Tech Stack
 
 | Component | Technology |
 |---|---|
 | Object Detection | YOLO (Ultralytics) |
-| Multi-object Tracking | ByteTrack (via `supervision`) |
-| Team Classification | K-Means Clustering (scikit-learn) |
+| Multi-Object Tracking | ByteTrack (`supervision`) |
+| Team Classification | K-Means Clustering (`scikit-learn`) |
 | Camera Motion Estimation | Optical Flow (OpenCV) |
-| Perspective Transform | OpenCV |
+| Perspective Transformation | OpenCV |
 | Data Processing | pandas, NumPy |
 | Visualization | Matplotlib, OpenCV |
+| Analysis | Jupyter Notebook |
+
+---
 
 ## Project Structure
 
-```
+```text
 football_analysis/
-├── main.py                          # Pipeline entry point
-├── trackers/                        # YOLO detection + ByteTrack tracking
-├── team_assigner/                   # KMeans-based team color classification
-├── camera_movement_estimator/       # Optical flow camera compensation
-├── view_transformer/                # Pixel-to-meter perspective transform
-├── speed_and_distance_estimator/    # Speed/distance calculation
-├── player_ball_assigner/            # Ball possession logic
-├── stats/                           # Added: CSV export + heatmap generation
+│
+├── main.py
+│
+├── trackers/
+│   └── tracker.py
+│
+├── team_assigner/
+│   └── team_assigner.py
+│
+├── camera_movement_estimator/
+│
+├── view_transformer/
+│
+├── speed_and_distance_estimator/
+│
+├── player_ball_assigner/
+│
+├── stats/                         # Added
 │   ├── stats_exporter.py
 │   └── heatmap_generator.py
-├── utils/                           # Shared helper functions
-├── models/                          # Trained YOLO weights (best.pt)
-├── input_videos/                    # Source footage
-├── output_videos/                   # Generated video, CSV, and heatmap outputs
-└── stubs/                           # Cached tracking results (for faster re-runs)
+│
+├── analysis/                      # Added
+│   └── football_eda.ipynb
+│
+├── utils/
+│
+├── models/
+│   └── best.pt
+│
+├── input_videos/
+│
+├── output_videos/
+│
+└── stubs/
+    └── Cached tracking results
 ```
 
-## Setup & Usage
+---
 
-1. Create a virtual environment and install dependencies:
+## Setup
+
+### 1. Clone the repository
+
 ```bash
-pip install ultralytics supervision opencv-python pandas numpy matplotlib
+git clone <your-repository-url>
+cd football_analysis
 ```
 
-2. Place a trained YOLO model at `models/best.pt` and a source video in `input_videos/`.
+### 2. Create a virtual environment
 
-3. Run the pipeline:
+```bash
+python -m venv .venv
+```
+
+Activate it on Windows:
+
+```powershell
+.venv\Scripts\activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install ultralytics supervision opencv-python pandas numpy matplotlib scikit-learn
+```
+
+### 4. Add the model
+
+Place the trained YOLO weights at:
+
+```text
+models/best.pt
+```
+
+### 5. Add the input video
+
+Place the source video inside:
+
+```text
+input_videos/
+```
+
+Update the video path in `main.py` if necessary.
+
+---
+
+## Usage
+
+Run the pipeline with:
+
 ```bash
 python main.py
 ```
 
-4. Outputs will be generated in `output_videos/`:
-   - `output_video.avi` — annotated video
-   - `player_stats.csv` — per-player statistics
-   - `heatmap.png`, `heatmap_all_players.png` — positional heatmaps
+Generated outputs are saved to:
+
+```text
+output_videos/
+```
+
+Including:
+
+```text
+output_video.avi
+player_stats.csv
+heatmap.png
+heatmap_all_players.png
+```
+
+---
 
 ## Future Improvements
 
-- **Pass Accuracy Tracking** — estimate completed vs. failed passes based on ball possession transitions between players (in progress; intentionally left as a future iteration to keep the current feature set well-understood and reliable)
-- Support for exporting a short automated text summary of the match statistics
-- Team formation snapshot visualization
+Potential extensions include:
+
+- **Pass Accuracy Tracking** — estimate completed vs. failed passes based on ball-possession transitions.
+- Automated text-based match summaries generated from player and team statistics.
+- Team formation snapshot visualization.
+- Interactive dashboard for exploring player statistics and heatmaps.
+
+---
+
+## Learning Outcomes
+
+This project provided hands-on experience with:
+
+- End-to-end computer vision pipeline design
+- YOLO object detection
+- Multi-object tracking
+- Optical Flow
+- Perspective transformation
+- K-Means clustering
+- OpenCV-based video processing
+- Converting frame-level tracking data into structured analytics
+- Data visualization and exploratory analysis
+
+---
 
 ## Credits
 
-Base pipeline structure adapted from an open-source football analysis tutorial project. Statistics export and heatmap visualization features were added independently.
+The core computer vision pipeline was adapted from the football analysis project by Abdullah Tarek.
+
+Original repository:
+https://github.com/abdullahtarek/football_analysis
+
+The original project provided the foundation for the detection, tracking, team assignment, camera movement estimation, perspective transformation, speed/distance estimation, and ball possession pipeline.
+
+I extended the project with:
+- Player statistics CSV export
+- Player heatmap generation
+- Exploratory data analysis notebook
