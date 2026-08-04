@@ -1,3 +1,4 @@
+import gc
 from utils import read_video, save_video
 from trackers import Tracker
 import cv2
@@ -7,7 +8,8 @@ from player_ball_assigner import PlayerBallAssigner
 from camera_movement_estimator import CameraMovementEstimator
 from view_transformer import ViewTransformer
 from speed_and_distance_estimator import SpeedAndDistance_Estimator
-
+from stats.stats_exporter import export_player_stats
+from stats.heatmap_generator import generate_player_heatmap, generate_all_players_heatmap
 
 def main():
     # Read Video
@@ -17,8 +19,8 @@ def main():
     tracker = Tracker('models/best.pt')
 
     tracks = tracker.get_object_tracks(video_frames,
-                                       read_from_stub=True,
-                                       stub_path='stubs/track_stubs.pkl')
+                                        read_from_stub=True,
+                                        stub_path='stubs/track_stubs.pkl')
     # Get object positions 
     tracker.add_position_to_tracks(tracks)
 
@@ -49,8 +51,8 @@ def main():
     for frame_num, player_track in enumerate(tracks['players']):
         for player_id, track in player_track.items():
             team = team_assigner.get_player_team(video_frames[frame_num],   
-                                                 track['bbox'],
-                                                 player_id)
+                                                  track['bbox'],
+                                                  player_id)
             tracks['players'][frame_num][player_id]['team'] = team 
             tracks['players'][frame_num][player_id]['team_color'] = team_assigner.team_colors[team]
 
@@ -74,12 +76,24 @@ def main():
     ## Draw object Tracks
     output_video_frames = tracker.draw_annotations(video_frames, tracks,team_ball_control)
 
+    # Free memory: we don't need the original frames anymore
+    del video_frames
+    gc.collect()
+
     ## Draw Camera movement
     output_video_frames = camera_movement_estimator.draw_camera_movement(output_video_frames,camera_movement_per_frame)
 
     ## Draw Speed and Distance
     speed_and_distance_estimator.draw_speed_and_distance(output_video_frames,tracks)
 
+    # Export Player Stats# Export player statistics to CSV
+    export_player_stats(tracks)
+    
+    # Generate a heatmap for a specific player (change the ID as needed)
+    generate_player_heatmap(tracks, player_id=3)
+    
+    # Generate a heatmap for all players combined
+    generate_all_players_heatmap(tracks)
     # Save video
     save_video(output_video_frames, 'output_videos/output_video.avi')
 

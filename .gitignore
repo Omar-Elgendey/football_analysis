@@ -1,2 +1,22 @@
-*__pycahce__*
+# Virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
 *.pyc
+
+# Trained model (too large for git; download separately)
+models/*.pt
+
+# Large / generated files (regenerate locally instead of tracking on git)
+stubs/*.pkl
+output_videos/*.avi
+output_videos/*.mp4
+
+# Input videos (not owned by us, large size)
+input_videos/*.mp4
+
+# Unrelated screenshots not meant for the repo
+output_videos/screenshot.png
+output_videos/cropped_image.jpg
