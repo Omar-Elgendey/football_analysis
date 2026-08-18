@@ -21,7 +21,7 @@ The pipeline generates an annotated video containing:
 
 ### Annotated Video
 
-output_videos/demo_frame.png
+![Uploading image.png…]()
 
 ---
 
