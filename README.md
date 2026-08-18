@@ -21,8 +21,9 @@ The pipeline generates an annotated video containing:
 
 ### Annotated Video
 
-![Uploading image.png…]()
+### Annotated Video
 
+![Annotated Video](output_videos/demo_frame.png)
 ---
 
 ## Pipeline Architecture
