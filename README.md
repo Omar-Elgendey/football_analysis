@@ -21,7 +21,7 @@ The pipeline generates an annotated video containing:
 
 ### Annotated Video
 
-_Add a screenshot or GIF of the generated output here._
+output_videos/demo_frame.png
 
 ---
 
